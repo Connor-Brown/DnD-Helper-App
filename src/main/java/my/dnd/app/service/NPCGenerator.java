@@ -41,7 +41,7 @@ public class NPCGenerator {
 		npc.setLevel(level);
 		setHp(npc);
 		setArmor(npc);
-		assignInventory(npc);
+//		assignInventory(npc);
 		return npc;
 	}
 
@@ -548,9 +548,9 @@ public class NPCGenerator {
 	}
 
 	private void giveShield(NPC npc) {
-		Item i = getItemFromDatabaseByName("Shield");
-		if (i != null)
-			npc.getInventory().add(i);
+//		Item i = getItemFromDatabaseByName("Shield");
+//		if (i != null)
+//			npc.getInventory().add(i);
 		npc.setAc(npc.getAc() + 2);
 	}
 
@@ -558,48 +558,48 @@ public class NPCGenerator {
 		if (npc.getStrength() >= 15) {
 			int temp = r.nextInt(4);
 			if (temp == 0) {
-				Item i = getItemFromDatabaseByName("Plate Armor");
-				if (i != null)
-					npc.getInventory().add(i);
+//				Item i = getItemFromDatabaseByName("Plate Armor");
+//				if (i != null)
+//					npc.getInventory().add(i);
 				if (npc.getAc() < 18)
 					npc.setAc(18);
 			} else if (temp == 1) {
-				Item i = getItemFromDatabaseByName("Splint Armor");
-				if (i != null)
-					npc.getInventory().add(i);
+//				Item i = getItemFromDatabaseByName("Splint Armor");
+//				if (i != null)
+//					npc.getInventory().add(i);
 				if (npc.getAc() < 17)
 					npc.setAc(17);
 			} else if (temp == 2) {
-				Item i = getItemFromDatabaseByName("Chain Mail");
-				if (i != null)
-					npc.getInventory().add(i);
+//				Item i = getItemFromDatabaseByName("Chain Mail");
+//				if (i != null)
+//					npc.getInventory().add(i);
 				if (npc.getAc() < 16)
 					npc.setAc(16);
 			} else {
-				Item i = getItemFromDatabaseByName("Ring Mail");
-				if (i != null)
-					npc.getInventory().add(i);
+//				Item i = getItemFromDatabaseByName("Ring Mail");
+//				if (i != null)
+//					npc.getInventory().add(i);
 				if (npc.getAc() < 14)
 					npc.setAc(14);
 			}
 		} else if (npc.getStrength() >= 13) {
 			if (r.nextBoolean()) {
-				Item i = getItemFromDatabaseByName("Ring Mail");
-				if (i != null)
-					npc.getInventory().add(i);
+//				Item i = getItemFromDatabaseByName("Ring Mail");
+//				if (i != null)
+//					npc.getInventory().add(i);
 				if (npc.getAc() < 14)
 					npc.setAc(14);
 			} else {
-				Item i = getItemFromDatabaseByName("Chain Mail");
-				if (i != null)
-					npc.getInventory().add(i);
+//				Item i = getItemFromDatabaseByName("Chain Mail");
+//				if (i != null)
+//					npc.getInventory().add(i);
 				if (npc.getAc() < 16)
 					npc.setAc(16);
 			}
 		} else {
-			Item i = getItemFromDatabaseByName("Ring Mail");
-			if (i != null)
-				npc.getInventory().add(i);
+//			Item i = getItemFromDatabaseByName("Ring Mail");
+//			if (i != null)
+//				npc.getInventory().add(i);
 			if (npc.getAc() < 14)
 				npc.setAc(14);
 		}
@@ -608,33 +608,33 @@ public class NPCGenerator {
 	private void giveMediumArmor(NPC npc) {
 		int temp = r.nextInt(5);
 		if (temp == 0) {
-			Item i = getItemFromDatabaseByName("Hide Armor");
-			if (i != null)
-				npc.getInventory().add(i);
+//			Item i = getItemFromDatabaseByName("Hide Armor");
+//			if (i != null)
+//				npc.getInventory().add(i);
 			if (npc.getAc() < max2Dex(getModifier(npc.getDexterity())) + 12)
 				npc.setAc(max2Dex(getModifier(npc.getDexterity())) + 12);
 		} else if (temp == 1) {
-			Item i = getItemFromDatabaseByName("Chain Shirt");
-			if (i != null)
-				npc.getInventory().add(i);
+//			Item i = getItemFromDatabaseByName("Chain Shirt");
+//			if (i != null)
+//				npc.getInventory().add(i);
 			if (npc.getAc() < max2Dex(getModifier(npc.getDexterity())) + 13)
 				npc.setAc(max2Dex(getModifier(npc.getDexterity())) + 13);
 		} else if (temp == 2) {
-			Item i = getItemFromDatabaseByName("Scale Mail");
-			if (i != null)
-				npc.getInventory().add(i);
+//			Item i = getItemFromDatabaseByName("Scale Mail");
+//			if (i != null)
+//				npc.getInventory().add(i);
 			if (npc.getAc() < max2Dex(getModifier(npc.getDexterity())) + 14)
 				npc.setAc(max2Dex(getModifier(npc.getDexterity())) + 14);
 		} else if (temp == 3) {
-			Item i = getItemFromDatabaseByName("Breastplate");
-			if (i != null)
-				npc.getInventory().add(i);
+//			Item i = getItemFromDatabaseByName("Breastplate");
+//			if (i != null)
+//				npc.getInventory().add(i);
 			if (npc.getAc() < max2Dex(getModifier(npc.getDexterity())) + 14)
 				npc.setAc(max2Dex(getModifier(npc.getDexterity())) + 14);
 		} else {
-			Item i = getItemFromDatabaseByName("Half Plate");
-			if (i != null)
-				npc.getInventory().add(i);
+//			Item i = getItemFromDatabaseByName("Half Plate");
+//			if (i != null)
+//				npc.getInventory().add(i);
 			if (npc.getAc() < max2Dex(getModifier(npc.getDexterity())) + 15)
 				npc.setAc(max2Dex(getModifier(npc.getDexterity())) + 15);
 		}
@@ -642,15 +642,15 @@ public class NPCGenerator {
 
 	private void giveLightArmor(NPC npc) {
 		if (r.nextBoolean()) {
-			Item i = getItemFromDatabaseByName("Leather Armor");
-			if (i != null)
-				npc.getInventory().add(i);
+//			Item i = getItemFromDatabaseByName("Leather Armor");
+//			if (i != null)
+//				npc.getInventory().add(i);
 			if (npc.getAc() < getModifier(npc.getDexterity()) + 11)
 				npc.setAc(getModifier(npc.getDexterity()) + 11);
 		} else {
-			Item i = getItemFromDatabaseByName("Studded Leather Armor");
-			if (i != null)
-				npc.getInventory().add(i);
+//			Item i = getItemFromDatabaseByName("Studded Leather Armor");
+//			if (i != null)
+//				npc.getInventory().add(i);
 			if (npc.getAc() < getModifier(npc.getDexterity()) + 12)
 				npc.setAc(getModifier(npc.getDexterity()) + 12);
 		}
