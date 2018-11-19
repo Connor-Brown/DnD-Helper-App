@@ -41,7 +41,7 @@ public class NPCGenerator {
 		npc.setLevel(level);
 		setHp(npc);
 		setArmor(npc);
-//		assignInventory(npc);
+		assignInventory(npc);
 		return npc;
 	}
 
