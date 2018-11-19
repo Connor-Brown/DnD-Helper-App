@@ -1,7 +1,7 @@
 # DnD-Helper-App
 Java Spring web app for a DM's Helper App for D&amp;D 5e
 
-Note: I have excluded the JDBCConnection class from here, as I don't want to give public access to my database. This causes the Treasure Generator to not work (every item is stored in a database for simple lookup). Also, the NPCGenerator does not create an inventory, but does still have accurate AC according to what type of armor they are wearing.
+Note: As I don't want to provide public access to my database, the Treasure generator and NPC inventories will not work. In a future update I might add the SQL create statements and database structure.
 
 I am not affiliated with Wizards of the Coast or Dungeons and Dragons 5e in any way. All inspiration for this project is credited to them as well as all features for npc stats, spells, creatures, and treasure.
 
