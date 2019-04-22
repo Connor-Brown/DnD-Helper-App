@@ -7,6 +7,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Random;
+import java.util.Scanner;
 
 import my.dnd.app.jdbc.JDBCConnection;
 import my.dnd.app.model.Item;
@@ -483,6 +484,7 @@ public class NPCGenerator {
 				npc.setAc(13 + getModifier(npc.getDexterity()));
 			switch (npc.getClassname()) {
 			case "BARBARIAN":
+				npc.setAc(getModifier(npc.getDexterity()) + getModifier(npc.getConstitution()) + 10);
 				if (r.nextInt(4) == 0) {
 					giveShield(npc);
 				}
@@ -538,6 +540,9 @@ public class NPCGenerator {
 					giveMediumArmor(npc);
 				if (r.nextInt(8) == 0)
 					giveShield(npc);
+				break;
+			case "MONK":
+				npc.setAc(getModifier(npc.getDexterity()) + getModifier(npc.getWisdom()) + 10);
 				break;
 			default:
 				if (npc.getAc() == 0)
@@ -1860,5 +1865,43 @@ public class NPCGenerator {
 			break;
 		}
 		return true;
+	}
+
+	public NPC generateNPC(String classname, String race, String level) {
+		int a;
+		if (level.equals("Surprise me")) {
+			a = r.nextInt(20) + 1;
+		} else {
+			a = Integer.parseInt(level);
+		}
+		if(classname.equals("Surprise me")) {
+			String[] s = {"BARBARIAN", "BARD", "CLERIC", "DRUID", "FIGHTER", "MONK", "PALADIN", "RANGER", "ROGUE", "SORCERER", "WARLOCK", "WIZARD"};
+			classname = s[r.nextInt(s.length)];
+		}
+		if(race.equals("Surprise me")) {
+			String[] s = {"AARAKOCRA", "AASIMAR", "CHANGELING", "DRAGONBORN", "DWARF", "ELF", "FIRBOLG", "GENASI", "GNOME", "GOLIATH", "HALF-ELF",
+					"HALF-ORC", "HUMAN", "LIZARDFOLK", "LOXODON", "ORC", "SHIFTER", "TABAXI", "TIEFLING", "TORTLE", "TRITON", "WARFORGED"};
+			race = s[r.nextInt(s.length)];
+		}
+		NPC npc = NPCGenerator.getInstance().generateNPC(classname, race, a);
+		npc.setClassname(formatString(npc.getClassname()));
+		npc.setRace(formatString(npc.getRace()));
+		for(int i = 0; i < npc.getFeats().size(); i++) {
+			npc.getFeats().set(i, formatString(npc.getFeats().get(i)));
+		}
+		return npc;
+	}
+	
+	private String formatString(String string) {
+		Scanner scan = new Scanner(string);
+		String returner = "";
+		while(scan.hasNext()) {
+			String s = scan.next();
+			s = s.toLowerCase();
+			s = Character.toUpperCase(s.charAt(0)) + s.substring(1, s.length());
+			returner += s + " ";
+		}
+		scan.close();
+		return returner;
 	}
 }

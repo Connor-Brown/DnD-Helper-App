@@ -1,13 +1,10 @@
 package my.dnd.app.jdbc;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.net.URL;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.util.Properties;
+
+import my.properties.Ref;
 
 public class JDBCConnection {
 	
@@ -24,19 +21,12 @@ public class JDBCConnection {
 	private static void setUpConnection() {
 		try {
 			Class.forName("com.mysql.cj.jdbc.Driver");
-			Properties prop = new Properties();
-			URL url = JDBCConnection.class.getClassLoader().getResource("config.properties");
-			System.out.println(url);
-			prop.load(new FileInputStream(url.getFile()));
-			String username = (String) prop.get("jdbcuser");
-			String password = (String) prop.get("jdbcpassword");
-			connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/dnddb", username, password);
+			String username = Ref.getJDBCUser();
+			String password = Ref.getJDBCPassword();
+			String schema = Ref.getSchema();
+			connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/"+schema, username, password);
 			instance = new JDBCConnection();
 		} catch (ClassNotFoundException | SQLException e) {
-			e.printStackTrace();
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
 			e.printStackTrace();
 		}
 	}

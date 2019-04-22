@@ -1,36 +1,31 @@
 package my.dnd.app.service;
 
-import java.io.IOException;
-import java.io.InputStream;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Random;
-import java.util.Scanner;
+import java.util.stream.Collectors;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-import org.xml.sax.SAXException;
-
+import my.dnd.app.model.MonsterHolder;
+import my.dnd.app.jdbc.JDBCConnection;
 import my.dnd.app.model.Monster;
+import my.dnd.app.model.Monster.InnerText;
 
 public class EncounterGenerator {
 
-	private static List<Monster> monsterList;
+	private static List<MonsterHolder> MonsterHolderList;
 	private static int[][] xpThreshold;
 	private static Random r;
 
 	private static EncounterGenerator instance;
-	
+
 	public static EncounterGenerator getInstance() {
 		if (instance == null) {
-			readFileToList();
+			// readFileToList();
+			initMonsterHolderList();
 			initializeXPThresholds();
 			r = new Random();
 			instance = new EncounterGenerator();
@@ -41,12 +36,241 @@ public class EncounterGenerator {
 	private EncounterGenerator() {
 	}
 
-	public List<Monster> getMonsterList() {
-		return monsterList;
+	private static void initMonsterHolderList() {
+		try {
+			MonsterHolderList = new ArrayList<>();
+			ResultSet rs = JDBCConnection.getInstance().getConnection().prepareStatement("SELECT * FROM monsters")
+					.executeQuery();
+			while (rs.next()) {
+				Monster m = new Monster();
+				m.setAc(rs.getInt("ac"));
+				m.setName(rs.getString("name"));
+				m.setSize(rs.getString("size"));
+				m.setType(rs.getString("type"));
+				m.setAlignment1(rs.getString("alignment1"));
+				m.setAlignment2(rs.getString("alignment2"));
+				m.setAverageHp(rs.getInt("averagehp"));
+				m.setNumDice(rs.getInt("numdice"));
+				m.setDiceSize(rs.getInt("dicesize"));
+				m.setBonusHp(rs.getInt("bonushp"));
+				m.setCr(rs.getShort("cr"));
+				m.setLegendary(rs.getBoolean("islegendary"));
+				String text = rs.getString("text");
+				List<InnerText> list = new ArrayList<>();
+				list.add(m.new InnerText(text, null));
+				m.setInnerTextList(list);
+				MonsterHolderList.add(new MonsterHolder(m, 1));
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 	}
 
-	public List<Monster> generateGivenThematicEncounterByLevel(int level, int numPlayers, String type) {
-		ArrayList<Monster> returner = new ArrayList<>();
+	public Monster findMonsterByName(String name) {
+		for (MonsterHolder m : MonsterHolderList) {
+			if (m.getMonster().getName().equalsIgnoreCase(name))
+				return m.getMonster();
+		}
+		return null;
+	}
+
+	public List<MonsterHolder> getMonsterHolderList() {
+		return MonsterHolderList;
+	}
+
+	public List<Monster> getMonsterListSortedByName(List<Monster> list) {
+		Collections.sort(list, new Comparator<Monster>() {
+			@Override
+			public int compare(Monster o1, Monster o2) {
+				return o1.getName().compareTo(o2.getName());
+			}
+		});
+		return list;
+	}
+
+	public List<MonsterHolder> getMonsterHolderListSortedByName(List<MonsterHolder> list) {
+		Collections.sort(list, new Comparator<MonsterHolder>() {
+			@Override
+			public int compare(MonsterHolder o1, MonsterHolder o2) {
+				return o1.getMonster().getName().compareTo(o2.getMonster().getName());
+			}
+		});
+		return list;
+	}
+
+	public List<Monster> getMonsterListSortedBySize(List<Monster> list) {
+		Collections.sort(list, new Comparator<Monster>() {
+			@Override
+			public int compare(Monster o1, Monster o2) {
+				return new Integer(sizeToInt(o1.getSize())).compareTo(new Integer(sizeToInt(o2.getSize())));
+			}
+		});
+		return list;
+	}
+
+	public List<MonsterHolder> getMonsterHolderListSortedBySize(List<MonsterHolder> list) {
+		Collections.sort(list, new Comparator<MonsterHolder>() {
+			@Override
+			public int compare(MonsterHolder o1, MonsterHolder o2) {
+				return new Integer(sizeToInt(o1.getMonster().getSize()))
+						.compareTo(new Integer(sizeToInt(o2.getMonster().getSize())));
+			}
+		});
+		return list;
+	}
+
+	private int sizeToInt(String size) {
+		switch (size) {
+		case "T":
+			return 0;
+		case "S":
+			return 1;
+		case "M":
+			return 2;
+		case "L":
+			return 3;
+		case "H":
+			return 4;
+		case "G":
+			return 5;
+		default:
+			return -1;
+		}
+	}
+
+	public List<Monster> getMonsterListSortedByType(List<Monster> list) {
+		Collections.sort(list, new Comparator<Monster>() {
+			@Override
+			public int compare(Monster o1, Monster o2) {
+				return o1.getType().compareTo(o2.getType());
+			}
+		});
+		return list;
+	}
+
+	public List<MonsterHolder> getMonsterHolderListSortedByType(List<MonsterHolder> list) {
+		Collections.sort(list, new Comparator<MonsterHolder>() {
+			@Override
+			public int compare(MonsterHolder o1, MonsterHolder o2) {
+				return o1.getMonster().getType().compareTo(o2.getMonster().getType());
+			}
+		});
+		return list;
+	}
+
+	public List<Monster> getMonsterListSortedByAlignment(List<Monster> list) {
+		Collections.sort(list, new Comparator<Monster>() {
+			@Override
+			public int compare(Monster o1, Monster o2) {
+				return (o1.getAlignment1() + " " + o1.getAlignment2())
+						.compareTo(o2.getAlignment1() + " " + o2.getAlignment2());
+			}
+		});
+		return list;
+	}
+
+	public List<MonsterHolder> getMonsterHolderListSortedByAlignment(List<MonsterHolder> list) {
+		Collections.sort(list, new Comparator<MonsterHolder>() {
+			@Override
+			public int compare(MonsterHolder o1, MonsterHolder o2) {
+				return (o1.getMonster().getAlignment1() + " " + o1.getMonster().getAlignment2())
+						.compareTo(o2.getMonster().getAlignment1() + " " + o2.getMonster().getAlignment2());
+			}
+		});
+		return list;
+	}
+
+	public List<Monster> getMonsterListSortedByAC(List<Monster> list) {
+		Collections.sort(list, new Comparator<Monster>() {
+			@Override
+			public int compare(Monster o1, Monster o2) {
+				return new Integer(o1.getAc()).compareTo(new Integer(o2.getAc()));
+			}
+		});
+		Collections.reverse(list);
+		return list;
+	}
+
+	public List<MonsterHolder> getMonsterHolderListSortedByAC(List<MonsterHolder> list) {
+		Collections.sort(list, new Comparator<MonsterHolder>() {
+			@Override
+			public int compare(MonsterHolder o1, MonsterHolder o2) {
+				return new Integer(o1.getMonster().getAc()).compareTo(new Integer(o2.getMonster().getAc()));
+			}
+		});
+		Collections.reverse(list);
+		return list;
+	}
+
+	public List<Monster> getMonsterListSortedByHp(List<Monster> list) {
+		Collections.sort(list, new Comparator<Monster>() {
+			@Override
+			public int compare(Monster o1, Monster o2) {
+				return new Integer(o1.getAverageHp()).compareTo(new Integer(o2.getAverageHp()));
+			}
+		});
+		Collections.reverse(list);
+		return list;
+	}
+
+	public List<MonsterHolder> getMonsterHolderListSortedByHp(List<MonsterHolder> list) {
+		Collections.sort(list, new Comparator<MonsterHolder>() {
+			@Override
+			public int compare(MonsterHolder o1, MonsterHolder o2) {
+				return new Integer(o1.getMonster().getAverageHp())
+						.compareTo(new Integer(o2.getMonster().getAverageHp()));
+			}
+		});
+		Collections.reverse(list);
+		return list;
+	}
+
+	public List<Monster> getMonsterListSortedByCr(List<Monster> list) {
+		Collections.sort(list, new Comparator<Monster>() {
+			@Override
+			public int compare(Monster o1, Monster o2) {
+				return new Double(o1.getCr()).compareTo(new Double(o2.getCr()));
+			}
+		});
+		Collections.reverse(list);
+		return list;
+	}
+
+	public List<MonsterHolder> getMonsterHolderListSortedByCr(List<MonsterHolder> list) {
+		Collections.sort(list, new Comparator<MonsterHolder>() {
+			@Override
+			public int compare(MonsterHolder o1, MonsterHolder o2) {
+				return new Double(o1.getMonster().getCr()).compareTo(new Double(o2.getMonster().getCr()));
+			}
+		});
+		Collections.reverse(list);
+		return list;
+	}
+
+	public List<Monster> getMonsterListSortedByLegendaryStatus(List<Monster> list) {
+		Collections.sort(list, new Comparator<Monster>() {
+			@Override
+			public int compare(Monster o1, Monster o2) {
+				return new Boolean(o1.isLegendary()).compareTo(new Boolean(o2.isLegendary()));
+			}
+		});
+		Collections.reverse(list);
+		return list;
+	}
+
+	public List<MonsterHolder> getMonsterHolderListSortedByLegendaryStatus(List<MonsterHolder> list) {
+		Collections.sort(list, new Comparator<MonsterHolder>() {
+			@Override
+			public int compare(MonsterHolder o1, MonsterHolder o2) {
+				return new Boolean(o1.getMonster().isLegendary()).compareTo(new Boolean(o2.getMonster().isLegendary()));
+			}
+		});
+		Collections.reverse(list);
+		return list;
+	}
+
+	public List<MonsterHolder> generateGivenThematicEncounterByLevel(int level, int numPlayers, String type) {
+		ArrayList<MonsterHolder> returner = new ArrayList<>();
 		int[] xpRange = getXPs(level, numPlayers);
 		int totalXP = 0;
 		long before = System.currentTimeMillis();
@@ -57,17 +281,17 @@ public class EncounterGenerator {
 			}
 			if (!returner.isEmpty())
 				returner.clear();
-			Monster m = monsterList.get(r.nextInt(monsterList.size()));
-			if (m.getType().equals(type)) {
+			MonsterHolder m = MonsterHolderList.get(r.nextInt(MonsterHolderList.size()));
+			if (m.getMonster().getType().equals(type)) {
 				returner.add(m);
-				totalXP = crToXP(returner.get(0).getCr());
+				totalXP = crToXP(returner.get(0).getMonster().getCr());
 			}
 		} while (totalXP == 0 || totalXP > xpRange[3]);
-		return getNextThematicMonster(returner, totalXP, xpRange[3], xpRange[0], numPlayers);
+		return getNextThematicMonsterHolder(returner, totalXP, xpRange[3], xpRange[0], numPlayers);
 	}
 
-	public ArrayList<Monster> generateRandomThematicEncounterByLevel(int level, int numPlayers) {
-		ArrayList<Monster> returner = new ArrayList<>();
+	public ArrayList<MonsterHolder> generateRandomThematicEncounterByLevel(int level, int numPlayers) {
+		ArrayList<MonsterHolder> returner = new ArrayList<>();
 		int[] xpRange = getXPs(level, numPlayers);
 		int totalXP;
 		long before = System.currentTimeMillis();
@@ -78,14 +302,14 @@ public class EncounterGenerator {
 			}
 			if (!returner.isEmpty())
 				returner.clear();
-			returner.add(monsterList.get(r.nextInt(monsterList.size())));
-			totalXP = crToXP(returner.get(0).getCr());
+			returner.add(MonsterHolderList.get(r.nextInt(MonsterHolderList.size())));
+			totalXP = crToXP(returner.get(0).getMonster().getCr());
 		} while (totalXP == 0 || totalXP > xpRange[3]);
-		return getNextThematicMonster(returner, totalXP, xpRange[3], xpRange[0], numPlayers);
+		return getNextThematicMonsterHolder(returner, totalXP, xpRange[3], xpRange[0], numPlayers);
 	}
 
-	private ArrayList<Monster> getNextThematicMonster(ArrayList<Monster> returner, int totalXP, double maxXP,
-			double minXP, int numPlayers) {
+	private ArrayList<MonsterHolder> getNextThematicMonsterHolder(ArrayList<MonsterHolder> returner, int totalXP,
+			double maxXP, double minXP, int numPlayers) {
 		long before = System.currentTimeMillis();
 		double modifiedTotalXP = totalXP;
 		while (modifiedTotalXP < minXP) {
@@ -93,20 +317,20 @@ public class EncounterGenerator {
 				setTarrasques(returner);
 				break;
 			}
-			int nextInt = r.nextInt(monsterList.size());
-			int tempXP = crToXP(monsterList.get(nextInt).getCr());
-			if (monsterList.get(nextInt).getType().equals(returner.get(0).getType())
+			int nextInt = r.nextInt(MonsterHolderList.size());
+			int tempXP = crToXP(MonsterHolderList.get(nextInt).getMonster().getCr());
+			if (MonsterHolderList.get(nextInt).getMonster().getType().equals(returner.get(0).getMonster().getType())
 					&& checkXP(returner, totalXP, tempXP, maxXP)) {
 				totalXP += tempXP;
 				modifiedTotalXP = modifyXP(returner, totalXP, numPlayers);
-				returner.add(monsterList.get(nextInt));
+				returner.add(MonsterHolderList.get(nextInt));
 			}
 		}
 		return returner;
 	}
 
-	public ArrayList<Monster> generateRandomEasyThematicEncounterByLevel(int level, int numPlayers) {
-		ArrayList<Monster> returner = new ArrayList<>();
+	public ArrayList<MonsterHolder> generateRandomEasyThematicEncounterByLevel(int level, int numPlayers) {
+		ArrayList<MonsterHolder> returner = new ArrayList<>();
 		int[] xpRange = getXPs(level, numPlayers);
 		double buffer = (xpRange[1] - xpRange[0]) / 2;
 		int totalXP;
@@ -118,14 +342,14 @@ public class EncounterGenerator {
 			}
 			if (!returner.isEmpty())
 				returner.clear();
-			returner.add(monsterList.get(r.nextInt(monsterList.size())));
-			totalXP = crToXP(returner.get(0).getCr());
+			returner.add(MonsterHolderList.get(r.nextInt(MonsterHolderList.size())));
+			totalXP = crToXP(returner.get(0).getMonster().getCr());
 		} while (totalXP == 0 || totalXP > xpRange[0] + buffer);
-		return getNextThematicMonster(returner, totalXP, xpRange[0] + buffer, xpRange[0] - buffer, numPlayers);
+		return getNextThematicMonsterHolder(returner, totalXP, xpRange[0] + buffer, xpRange[0] - buffer, numPlayers);
 	}
 
-	public ArrayList<Monster> generateRandomMediumThematicEncounterByLevel(int level, int numPlayers) {
-		ArrayList<Monster> returner = new ArrayList<>();
+	public ArrayList<MonsterHolder> generateRandomMediumThematicEncounterByLevel(int level, int numPlayers) {
+		ArrayList<MonsterHolder> returner = new ArrayList<>();
 		int[] xpRange = getXPs(level, numPlayers);
 		double buffer = (xpRange[2] - xpRange[1]) / 2;
 		int totalXP;
@@ -137,14 +361,14 @@ public class EncounterGenerator {
 			}
 			if (!returner.isEmpty())
 				returner.clear();
-			returner.add(monsterList.get(r.nextInt(monsterList.size())));
-			totalXP = crToXP(returner.get(0).getCr());
+			returner.add(MonsterHolderList.get(r.nextInt(MonsterHolderList.size())));
+			totalXP = crToXP(returner.get(0).getMonster().getCr());
 		} while (totalXP == 0 || totalXP > xpRange[1] + buffer);
-		return getNextThematicMonster(returner, totalXP, xpRange[1] + buffer, xpRange[1] - buffer, numPlayers);
+		return getNextThematicMonsterHolder(returner, totalXP, xpRange[1] + buffer, xpRange[1] - buffer, numPlayers);
 	}
 
-	public ArrayList<Monster> generateRandomHardThematicEncounterByLevel(int level, int numPlayers) {
-		ArrayList<Monster> returner = new ArrayList<>();
+	public ArrayList<MonsterHolder> generateRandomHardThematicEncounterByLevel(int level, int numPlayers) {
+		ArrayList<MonsterHolder> returner = new ArrayList<>();
 		int[] xpRange = getXPs(level, numPlayers);
 		double buffer = (xpRange[3] - xpRange[2]) / 2;
 		int totalXP;
@@ -156,14 +380,14 @@ public class EncounterGenerator {
 			}
 			if (!returner.isEmpty())
 				returner.clear();
-			returner.add(monsterList.get(r.nextInt(monsterList.size())));
-			totalXP = crToXP(returner.get(0).getCr());
+			returner.add(MonsterHolderList.get(r.nextInt(MonsterHolderList.size())));
+			totalXP = crToXP(returner.get(0).getMonster().getCr());
 		} while (totalXP == 0 || totalXP > xpRange[2] + buffer);
-		return getNextThematicMonster(returner, totalXP, xpRange[2] + buffer, xpRange[2] - buffer, numPlayers);
+		return getNextThematicMonsterHolder(returner, totalXP, xpRange[2] + buffer, xpRange[2] - buffer, numPlayers);
 	}
 
-	public ArrayList<Monster> generateRandomDeadlyThematicEncounterByLevel(int level, int numPlayers) {
-		ArrayList<Monster> returner = new ArrayList<>();
+	public ArrayList<MonsterHolder> generateRandomDeadlyThematicEncounterByLevel(int level, int numPlayers) {
+		ArrayList<MonsterHolder> returner = new ArrayList<>();
 		int[] xpRange = getXPs(level, numPlayers);
 		double buffer = (xpRange[3] - xpRange[2]) / 2;
 		int totalXP;
@@ -175,14 +399,14 @@ public class EncounterGenerator {
 			}
 			if (!returner.isEmpty())
 				returner.clear();
-			returner.add(monsterList.get(r.nextInt(monsterList.size())));
-			totalXP = crToXP(returner.get(0).getCr());
+			returner.add(MonsterHolderList.get(r.nextInt(MonsterHolderList.size())));
+			totalXP = crToXP(returner.get(0).getMonster().getCr());
 		} while (totalXP == 0 || totalXP > xpRange[3] + buffer);
-		return getNextThematicMonster(returner, totalXP, xpRange[3] + buffer, xpRange[3] - buffer, numPlayers);
+		return getNextThematicMonsterHolder(returner, totalXP, xpRange[3] + buffer, xpRange[3] - buffer, numPlayers);
 	}
 
-	public ArrayList<Monster> generateRandomSoloEncounterByLevel(int level, int numPlayers) {
-		ArrayList<Monster> returner = new ArrayList<>();
+	public ArrayList<MonsterHolder> generateRandomSoloEncounterByLevel(int level, int numPlayers) {
+		ArrayList<MonsterHolder> returner = new ArrayList<>();
 		int[] xpRange = getXPs(level, numPlayers);
 		long before = System.currentTimeMillis();
 		while (true) {
@@ -190,16 +414,16 @@ public class EncounterGenerator {
 				setTarrasques(returner);
 				return returner;
 			}
-			int nextInt = r.nextInt(monsterList.size());
-			int tempXP = crToXP(monsterList.get(nextInt).getCr());
-			if (checkXPForSoloMonster(tempXP, numPlayers, xpRange[3], xpRange[0])) {
-				returner.add(monsterList.get(nextInt));
+			int nextInt = r.nextInt(MonsterHolderList.size());
+			int tempXP = crToXP(MonsterHolderList.get(nextInt).getMonster().getCr());
+			if (checkXPForSoloMonsterHolder(tempXP, numPlayers, xpRange[3], xpRange[0])) {
+				returner.add(MonsterHolderList.get(nextInt));
 				return returner;
 			}
 		}
 	}
 
-	private boolean checkXPForSoloMonster(int tempXP, int numPlayers, double maxXP, double minXP) {
+	private boolean checkXPForSoloMonsterHolder(int tempXP, int numPlayers, double maxXP, double minXP) {
 		if (numPlayers > 5) {
 			tempXP /= 2;
 		} else if (numPlayers < 3) {
@@ -208,8 +432,8 @@ public class EncounterGenerator {
 		return (tempXP < maxXP && tempXP > minXP);
 	}
 
-	public ArrayList<Monster> generateRandomEasySoloEncounterByLevel(int level, int numPlayers) {
-		ArrayList<Monster> returner = new ArrayList<>();
+	public ArrayList<MonsterHolder> generateRandomEasySoloEncounterByLevel(int level, int numPlayers) {
+		ArrayList<MonsterHolder> returner = new ArrayList<>();
 		int[] xpRange = getXPs(level, numPlayers);
 		double buffer = (xpRange[1] - xpRange[0]) / 2;
 		long before = System.currentTimeMillis();
@@ -218,17 +442,17 @@ public class EncounterGenerator {
 				setTarrasques(returner);
 				return returner;
 			}
-			int nextInt = r.nextInt(monsterList.size());
-			int tempXP = crToXP(monsterList.get(nextInt).getCr());
-			if (checkXPForSoloMonster(tempXP, numPlayers, xpRange[0] + buffer, xpRange[0] - buffer)) {
-				returner.add(monsterList.get(nextInt));
+			int nextInt = r.nextInt(MonsterHolderList.size());
+			int tempXP = crToXP(MonsterHolderList.get(nextInt).getMonster().getCr());
+			if (checkXPForSoloMonsterHolder(tempXP, numPlayers, xpRange[0] + buffer, xpRange[0] - buffer)) {
+				returner.add(MonsterHolderList.get(nextInt));
 				return returner;
 			}
 		}
 	}
 
-	public ArrayList<Monster> generateRandomMediumSoloEncounterByLevel(int level, int numPlayers) {
-		ArrayList<Monster> returner = new ArrayList<>();
+	public ArrayList<MonsterHolder> generateRandomMediumSoloEncounterByLevel(int level, int numPlayers) {
+		ArrayList<MonsterHolder> returner = new ArrayList<>();
 		int[] xpRange = getXPs(level, numPlayers);
 		double buffer = (xpRange[2] - xpRange[1]) / 2;
 		long before = System.currentTimeMillis();
@@ -237,17 +461,17 @@ public class EncounterGenerator {
 				setTarrasques(returner);
 				return returner;
 			}
-			int nextInt = r.nextInt(monsterList.size());
-			int tempXP = crToXP(monsterList.get(nextInt).getCr());
-			if (checkXPForSoloMonster(tempXP, numPlayers, xpRange[1] + buffer, xpRange[1] - buffer)) {
-				returner.add(monsterList.get(nextInt));
+			int nextInt = r.nextInt(MonsterHolderList.size());
+			int tempXP = crToXP(MonsterHolderList.get(nextInt).getMonster().getCr());
+			if (checkXPForSoloMonsterHolder(tempXP, numPlayers, xpRange[1] + buffer, xpRange[1] - buffer)) {
+				returner.add(MonsterHolderList.get(nextInt));
 				return returner;
 			}
 		}
 	}
 
-	public ArrayList<Monster> generateRandomHardSoloEncounterByLevel(int level, int numPlayers) {
-		ArrayList<Monster> returner = new ArrayList<>();
+	public ArrayList<MonsterHolder> generateRandomHardSoloEncounterByLevel(int level, int numPlayers) {
+		ArrayList<MonsterHolder> returner = new ArrayList<>();
 		int[] xpRange = getXPs(level, numPlayers);
 		double buffer = (xpRange[3] - xpRange[2]) / 2;
 		long before = System.currentTimeMillis();
@@ -256,17 +480,17 @@ public class EncounterGenerator {
 				setTarrasques(returner);
 				return returner;
 			}
-			int nextInt = r.nextInt(monsterList.size());
-			int tempXP = crToXP(monsterList.get(nextInt).getCr());
-			if (checkXPForSoloMonster(tempXP, numPlayers, xpRange[2] + buffer, xpRange[2] - buffer)) {
-				returner.add(monsterList.get(nextInt));
+			int nextInt = r.nextInt(MonsterHolderList.size());
+			int tempXP = crToXP(MonsterHolderList.get(nextInt).getMonster().getCr());
+			if (checkXPForSoloMonsterHolder(tempXP, numPlayers, xpRange[2] + buffer, xpRange[2] - buffer)) {
+				returner.add(MonsterHolderList.get(nextInt));
 				return returner;
 			}
 		}
 	}
 
-	public ArrayList<Monster> generateRandomDeadlySoloEncounterByLevel(int level, int numPlayers) {
-		ArrayList<Monster> returner = new ArrayList<>();
+	public ArrayList<MonsterHolder> generateRandomDeadlySoloEncounterByLevel(int level, int numPlayers) {
+		ArrayList<MonsterHolder> returner = new ArrayList<>();
 		int[] xpRange = getXPs(level, numPlayers);
 		double buffer = (xpRange[3] - xpRange[2]) / 2;
 		long before = System.currentTimeMillis();
@@ -275,24 +499,24 @@ public class EncounterGenerator {
 				setTarrasques(returner);
 				return returner;
 			}
-			int nextInt = r.nextInt(monsterList.size());
-			int tempXP = crToXP(monsterList.get(nextInt).getCr());
-			if (checkXPForSoloMonster(tempXP, numPlayers, xpRange[3] + buffer, xpRange[3] - buffer)) {
-				returner.add(monsterList.get(nextInt));
+			int nextInt = r.nextInt(MonsterHolderList.size());
+			int tempXP = crToXP(MonsterHolderList.get(nextInt).getMonster().getCr());
+			if (checkXPForSoloMonsterHolder(tempXP, numPlayers, xpRange[3] + buffer, xpRange[3] - buffer)) {
+				returner.add(MonsterHolderList.get(nextInt));
 				return returner;
 			}
 		}
 	}
 
-	public ArrayList<Monster> generateRandomEncounterByLevel(int level, int numPlayers) {
-		ArrayList<Monster> returner = new ArrayList<>();
+	public ArrayList<MonsterHolder> generateRandomEncounterByLevel(int level, int numPlayers) {
+		ArrayList<MonsterHolder> returner = new ArrayList<>();
 		int[] xpRange = getXPs(level, numPlayers);
 		int totalXP = 0;
-		return getNextRandomMonster(returner, totalXP, xpRange[3], xpRange[0], numPlayers);
+		return getNextRandomMonsterHolder(returner, totalXP, xpRange[3], xpRange[0], numPlayers);
 	}
 
-	private ArrayList<Monster> getNextRandomMonster(ArrayList<Monster> returner, int totalXP, double maxXP,
-			double minXP, int numPlayers) {
+	private ArrayList<MonsterHolder> getNextRandomMonsterHolder(ArrayList<MonsterHolder> returner, int totalXP,
+			double maxXP, double minXP, int numPlayers) {
 		long before = System.currentTimeMillis();
 		double modifiedTotalXP = totalXP;
 		while (modifiedTotalXP < minXP) {
@@ -300,18 +524,18 @@ public class EncounterGenerator {
 				setTarrasques(returner);
 				break;
 			}
-			int nextInt = r.nextInt(monsterList.size());
-			int tempXP = crToXP(monsterList.get(nextInt).getCr());
+			int nextInt = r.nextInt(MonsterHolderList.size());
+			int tempXP = crToXP(MonsterHolderList.get(nextInt).getMonster().getCr());
 			if (checkXP(returner, totalXP, tempXP, maxXP)) {
 				totalXP += tempXP;
 				modifiedTotalXP = modifyXP(returner, totalXP, numPlayers);
-				returner.add(monsterList.get(nextInt));
+				returner.add(MonsterHolderList.get(nextInt));
 			}
 		}
 		return returner;
 	}
 
-	private double modifyXP(ArrayList<Monster> returner, int totalXP, int numPlayers) {
+	private double modifyXP(ArrayList<MonsterHolder> returner, int totalXP, int numPlayers) {
 		if (numPlayers > 5) {
 			if (returner.size() > 14) {
 				return totalXP * 3;
@@ -357,137 +581,312 @@ public class EncounterGenerator {
 		}
 	}
 
-	public ArrayList<Monster> generateRandomEasyEncounterByLevel(int level, int numPlayers) {
-		ArrayList<Monster> returner = new ArrayList<>();
+	public ArrayList<MonsterHolder> generateRandomEasyEncounterByLevel(int level, int numPlayers) {
+		ArrayList<MonsterHolder> returner = new ArrayList<>();
 		int[] xpRange = getXPs(level, numPlayers);
 		double buffer = (xpRange[1] - xpRange[0]) / 2;
 		int totalXP = 0;
-		return getNextRandomMonster(returner, totalXP, xpRange[0] + buffer, xpRange[0] - buffer, numPlayers);
+		return getNextRandomMonsterHolder(returner, totalXP, xpRange[0] + buffer, xpRange[0] - buffer, numPlayers);
 	}
 
-	public ArrayList<Monster> generateRandomMediumEncounterByLevel(int level, int numPlayers) {
-		ArrayList<Monster> returner = new ArrayList<>();
+	public ArrayList<MonsterHolder> generateRandomMediumEncounterByLevel(int level, int numPlayers) {
+		ArrayList<MonsterHolder> returner = new ArrayList<>();
 		int[] xpRange = getXPs(level, numPlayers);
 		double buffer = (xpRange[2] - xpRange[1]) / 2;
 		int totalXP = 0;
-		return getNextRandomMonster(returner, totalXP, xpRange[1] + buffer, xpRange[1] - buffer, numPlayers);
+		return getNextRandomMonsterHolder(returner, totalXP, xpRange[1] + buffer, xpRange[1] - buffer, numPlayers);
 	}
 
-	public ArrayList<Monster> generateRandomHardEncounterByLevel(int level, int numPlayers) {
-		ArrayList<Monster> returner = new ArrayList<>();
+	public ArrayList<MonsterHolder> generateRandomHardEncounterByLevel(int level, int numPlayers) {
+		ArrayList<MonsterHolder> returner = new ArrayList<>();
 		int[] xpRange = getXPs(level, numPlayers);
 		double buffer = (xpRange[3] - xpRange[2]) / 2;
 		int totalXP = 0;
-		return getNextRandomMonster(returner, totalXP, xpRange[2] + buffer, xpRange[2] - buffer, numPlayers);
+		return getNextRandomMonsterHolder(returner, totalXP, xpRange[2] + buffer, xpRange[2] - buffer, numPlayers);
 	}
 
-	public ArrayList<Monster> generateRandomDeadlyEncounterByLevel(int level, int numPlayers) {
-		ArrayList<Monster> returner = new ArrayList<>();
+	public ArrayList<MonsterHolder> generateRandomDeadlyEncounterByLevel(int level, int numPlayers) {
+		ArrayList<MonsterHolder> returner = new ArrayList<>();
 		int[] xpRange = getXPs(level, numPlayers);
 		double buffer = (xpRange[3] - xpRange[2]) / 2;
 		int totalXP = 0;
-		return getNextRandomMonster(returner, totalXP, xpRange[3] + buffer, xpRange[3] - buffer, numPlayers);
+		return getNextRandomMonsterHolder(returner, totalXP, xpRange[3] + buffer, xpRange[3] - buffer, numPlayers);
 	}
 
-	private static void readFileToList() {
-		try {
-			InputStream is = (InputStream) EncounterGenerator.class.getResourceAsStream("/monsters.xml");
-
-			monsterList = new ArrayList<>();
-			DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-			DocumentBuilder db = factory.newDocumentBuilder();
-			Document doc = db.parse(is);
-			doc.getDocumentElement().normalize();
-			NodeList list = doc.getElementsByTagName("monster");
-			
-			for (int i = 0; i < list.getLength(); i++) {
-				Node node = list.item(i);
-				if (node.getNodeType() == Node.ELEMENT_NODE) {
-					Element element = (Element) node;
-					Monster m = new Monster();
-					m.setName(element.getElementsByTagName("name").item(0).getTextContent());
-					m.setSize(element.getElementsByTagName("size").item(0).getTextContent());
-					Scanner scan = new Scanner(element.getElementsByTagName("type").item(0).getTextContent());
-					scan.useDelimiter(" |,|\\(");
-					m.setType(scan.next());
-					scan.close();
-					setAlignments(m, element.getElementsByTagName("alignment").item(0).getTextContent());
-					scan = new Scanner(element.getElementsByTagName("ac").item(0).getTextContent());
-					m.setAc(Integer.parseInt(scan.next()));
-					scan.close();
-					scan = new Scanner(element.getElementsByTagName("hp").item(0).getTextContent());
-					m.setAverageHp(Integer.parseInt(scan.next()));
-
-					if (scan.hasNext()) {
-						String s = scan.next();
-						s = s.substring(1, s.length() - 1);
-						Scanner scanner = new Scanner(s);
-						scanner.useDelimiter(" |d|\\+|\\-");
-						int numDice = scanner.nextInt();
-						int diceSize = scanner.nextInt();
-						m.setNumDice(numDice);
-						m.setDiceSize(diceSize);
-						if (scanner.hasNext()) {
-							int bonus = scanner.nextInt();
-							m.setBonusHp(bonus);
-						}
-						scanner.close();
-					}
-
-					scan.close();
-					m.setCr(crToDouble(element.getElementsByTagName("cr").item(0).getTextContent()));
-					if (element.getElementsByTagName("legendary").item(0) != null) {
-						m.setLegendary(true);
-					} else {
-						m.setLegendary(false);
-					}
-					monsterList.add(m);
-				}
-			}
-		} catch (ParserConfigurationException e) {
-			e.printStackTrace();
-		} catch (SAXException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
+	// private static void readFileToList() {
+	// try {
+	// InputStream is = (InputStream)
+	// EncounterGenerator.class.getResourceAsStream("/tomeOfFoes.xml");
+	//
+	// MonsterHolderList = new ArrayList<>();
+	// DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+	// DocumentBuilder db = factory.newDocumentBuilder();
+	// Document doc = db.parse(is);
+	// doc.getDocumentElement().normalize();
+	// NodeList list = doc.getElementsByTagName("monster");
+	//
+	// for (int i = 0; i < list.getLength(); i++) {
+	// Node node = list.item(i);
+	// if (node.getNodeType() == Node.ELEMENT_NODE) {
+	// Element element = (Element) node;
+	// Monster m = new Monster();
+	// m.setName(element.getElementsByTagName("name").item(0).getTextContent());
+	// m.setSize(element.getElementsByTagName("size").item(0).getTextContent());
+	// Scanner scan = new
+	// Scanner(element.getElementsByTagName("type").item(0).getTextContent());
+	// scan.useDelimiter(" |,|\\(");
+	// m.setType(scan.next());
+	// scan.close();
+	// setAlignments(m,
+	// element.getElementsByTagName("alignment").item(0).getTextContent());
+	// scan = new
+	// Scanner(element.getElementsByTagName("ac").item(0).getTextContent());
+	// m.setAc(Integer.parseInt(scan.next()));
+	// scan.close();
+	// scan = new
+	// Scanner(element.getElementsByTagName("hp").item(0).getTextContent());
+	// m.setAverageHp(Integer.parseInt(scan.next()));
+	//
+	// if (scan.hasNext()) {
+	// String s = scan.next();
+	// s = s.substring(1, s.length() - 1);
+	// Scanner scanner = new Scanner(s);
+	// scanner.useDelimiter(" |d|\\+|\\-");
+	// int numDice = Integer.parseInt(scanner.next());
+	// int diceSize = Integer.parseInt(scanner.next());
+	// m.setNumDice(numDice);
+	// m.setDiceSize(diceSize);
+	// if (scanner.hasNext()) {
+	// int bonus = scanner.nextInt();
+	// m.setBonusHp(bonus);
+	// }
+	// scanner.close();
+	// }
+	//
+	// scan.close();
+	// m.setCr(crToDouble(element.getElementsByTagName("cr").item(0).getTextContent()));
+	// if (element.getElementsByTagName("legendary").item(0) != null) {
+	// m.setLegendary(true);
+	// } else {
+	// m.setLegendary(false);
+	// }
+	//
+	// List<InnerText> innerTextList = new ArrayList<>();
+	// // traits
+	// int count = 0;
+	// while (element.getElementsByTagName("trait").item(count) != null) {
+	// Element innerElement = (Element)
+	// element.getElementsByTagName("trait").item(count);
+	// InnerText innerText = m.new InnerText();
+	// innerText.setName(
+	// "Trait - " +
+	// innerElement.getElementsByTagName("name").item(0).getTextContent());
+	// int innerCount = 0;
+	// while (innerElement.getElementsByTagName("text").item(innerCount) != null) {
+	// if (innerText.getText() == null)
+	// innerText.setText(
+	// innerElement.getElementsByTagName("text").item(innerCount).getTextContent()
+	// + "\n");
+	// else
+	// innerText.setText(innerText.getText()
+	// + innerElement.getElementsByTagName("text").item(innerCount).getTextContent()
+	// + "\n");
+	// innerCount++;
+	// }
+	// count++;
+	// innerTextList.add(innerText);
+	// }
+	//
+	// // actions
+	// count = 0;
+	// while (element.getElementsByTagName("action").item(count) != null) {
+	// Element innerElement = (Element)
+	// element.getElementsByTagName("action").item(count);
+	// InnerText innerText = m.new InnerText();
+	// innerText.setName(
+	// "Action - " +
+	// innerElement.getElementsByTagName("name").item(0).getTextContent());
+	// int innerCount = 0;
+	// while (innerElement.getElementsByTagName("text").item(innerCount) != null) {
+	// if (innerText.getText() == null)
+	// innerText.setText(
+	// innerElement.getElementsByTagName("text").item(innerCount).getTextContent()
+	// + "\n");
+	// else
+	// innerText.setText(innerText.getText()
+	// + innerElement.getElementsByTagName("text").item(innerCount).getTextContent()
+	// + "\n");
+	// innerCount++;
+	// }
+	// count++;
+	// innerTextList.add(innerText);
+	// }
+	//
+	// // legendary
+	// count = 0;
+	// while (element.getElementsByTagName("legendary").item(count) != null) {
+	// Element innerElement = (Element)
+	// element.getElementsByTagName("legendary").item(count);
+	// InnerText innerText = m.new InnerText();
+	// innerText.setName("Legendary Action - "
+	// + innerElement.getElementsByTagName("name").item(0).getTextContent());
+	// int innerCount = 0;
+	// while (innerElement.getElementsByTagName("text").item(innerCount) != null) {
+	// if (innerText.getText() == null)
+	// innerText.setText(
+	// innerElement.getElementsByTagName("text").item(innerCount).getTextContent()
+	// + "\n");
+	// else
+	// innerText.setText(innerText.getText()
+	// + innerElement.getElementsByTagName("text").item(innerCount).getTextContent()
+	// + "\n");
+	// innerCount++;
+	// }
+	// count++;
+	// innerTextList.add(innerText);
+	// }
+	// m.setInnerTextList(innerTextList);
+	//
+	// writeMonsterToDatabase(m);
+	//
+	// MonsterHolderList.add(new MonsterHolder(m, 1));
+	// }
+	// }
+	// } catch (IOException | ParserConfigurationException | SAXException e) {
+	// e.printStackTrace();
+	// }
+	// }
+	//
+	// private static void writeMonsterToDatabase(Monster m) {
+	// String sql = "";
+	// try {
+	// StringBuilder sb = new StringBuilder();
+	// for (InnerText i : m.getInnerTextList()) {
+	// sb.append(i.getName() + "\n" + i.getText() + "\n");
+	// }
+	// String text = sb.toString();
+	// for (int i = 0; i < text.length(); i++) {
+	// if (text.charAt(i) == '\'') {
+	// text = text.substring(Math.min(i - 1, 0), i) + "\\" + text.substring(i,
+	// text.length());
+	// i++;
+	// }
+	// }
+	// String name = m.getName();
+	// for (int i = 0; i < name.length(); i++) {
+	// if (name.charAt(i) == '\'') {
+	// name = name.substring(Math.min(i - 1, 0), i) + "\\" + name.substring(i,
+	// name.length());
+	// i++;
+	// }
+	// }
+	// sql = "INSERT INTO monsters (name, size, type, alignment1, alignment2, ac,
+	// averagehp, numdice, dicesize, bonushp, cr, islegendary, text) values ('"
+	// + name + "', '" + m.getSize() + "', '" + m.getType() + "', '" +
+	// m.getAlignment1() + "', '"
+	// + m.getAlignment2() + "', " + m.getAc() + ", " + m.getAverageHp() + ", " +
+	// m.getNumDice() + ", "
+	// + m.getDiceSize() + ", " + m.getBonusHp() + ", " + m.getCr() + ", " +
+	// m.isLegendary() + ", '" + text
+	// + "')";
+	// JDBCConnection.getInstance().getConnection().createStatement().executeUpdate(sql);
+	// } catch (SQLException e) {
+	// e.printStackTrace();
+	// }
+	// }
+	//
+	// private static double crToDouble(String cr) {
+	// switch (cr) {
+	// case "30":
+	// return 30;
+	// case "29":
+	// return 29;
+	// case "28":
+	// return 28;
+	// case "27":
+	// return 27;
+	// case "26":
+	// return 26;
+	// case "25":
+	// return 25;
+	// case "24":
+	// return 24;
+	// case "23":
+	// return 23;
+	// case "22":
+	// return 22;
+	// case "21":
+	// return 21;
+	// case "20":
+	// return 20;
+	// case "19":
+	// return 19;
+	// case "18":
+	// return 18;
+	// case "17":
+	// return 17;
+	// case "16":
+	// return 16;
+	// case "15":
+	// return 15;
+	// case "14":
+	// return 14;
+	// case "13":
+	// return 13;
+	// case "12":
+	// return 12;
+	// case "11":
+	// return 11;
+	// case "10":
+	// return 10;
+	// case "9":
+	// return 9;
+	// case "8":
+	// return 8;
+	// case "7":
+	// return 7;
+	// case "6":
+	// return 6;
+	// case "5":
+	// return 5;
+	// case "4":
+	// return 4;
+	// case "3":
+	// return 3;
+	// case "2":
+	// return 2;
+	// case "1":
+	// return 1;
+	// case ".5":
+	// case "1/2":
+	// return .5;
+	// case ".25":
+	// case "1/4":
+	// return .25;
+	// case ".125":
+	// case "1/8":
+	// return .125;
+	// default:
+	// return 0;
+	// }
+	// }
+	//
+	// private static void setAlignments(Monster m, String s) {
+	// Scanner scan = new Scanner(s);
+	// String first = scan.next();
+	// if (scan.hasNext()) {
+	// // has two alignments
+	// m.setAlignment1(first);
+	// m.setAlignment2(scan.next());
+	// } else {
+	// m.setAlignment1("neutral");
+	// m.setAlignment2("neutral");
+	// }
+	// scan.close();
+	// }
 
 	public List<String> getMonsterTypes() {
-		List<String> returner = new ArrayList<>();
-		for (Monster m : monsterList) {
-			if (!returner.contains(m.getType()))
-				returner.add(m.getType());
-		}
-		Collections.sort(returner);
-		return returner;
-	}
-
-	private static void setAlignments(Monster m, String s) {
-		Scanner scan = new Scanner(s);
-		String first = scan.next();
-		if (scan.hasNext()) {
-			// has two alignments
-			m.setAlignment1(first);
-			m.setAlignment2(scan.next());
-		} else {
-			m.setAlignment1("neutral");
-			m.setAlignment2("neutral");
-		}
-		scan.close();
-	}
-
-	private static double crToDouble(String s) {
-		try {
-			return Double.parseDouble(s);
-		} catch (NumberFormatException e) {
-			if (s.equals("1/8"))
-				return .125;
-			else if (s.equals("1/4"))
-				return .25;
-			else
-				return .5;
-		}
+		return MonsterHolderList.stream().map(x -> x.getMonster().getType()).distinct().sorted().collect(Collectors.toList());
 	}
 
 	private static int[] getXPs(int level, int numPlayers) {
@@ -499,7 +898,7 @@ public class EncounterGenerator {
 		return returner;
 	}
 
-	private boolean checkXP(List<Monster> returner, int totalXP, int tempXP, double maxXP) {
+	private boolean checkXP(List<MonsterHolder> returner, int totalXP, int tempXP, double maxXP) {
 		if (returner.size() > 14) {
 			return ((totalXP + tempXP) * 4 < maxXP);
 		} else if (returner.size() > 10) {
@@ -515,7 +914,7 @@ public class EncounterGenerator {
 		}
 	}
 
-	private static int crToXP(double cr) {
+	public static int crToXP(double cr) {
 		if (cr == 30)
 			return 155000;
 		else if (cr == 29)
@@ -689,11 +1088,11 @@ public class EncounterGenerator {
 		xpThreshold[3][19] = 12700;
 	}
 
-	private void setTarrasques(ArrayList<Monster> returner) {
+	private void setTarrasques(ArrayList<MonsterHolder> returner) {
 		if (returner.isEmpty()) {
-			Monster tarrasque = null;
-			for (Monster m : monsterList) {
-				if (m.getName().equals("Tarrasque")) {
+			MonsterHolder tarrasque = null;
+			for (MonsterHolder m : MonsterHolderList) {
+				if (m.getMonster().getName().equals("Tarrasque")) {
 					tarrasque = m;
 					break;
 				}
@@ -705,4 +1104,38 @@ public class EncounterGenerator {
 			returner.add(tarrasque);
 		}
 	}
+
+	public <T> List<T> clone(List<T> list) {
+		List<T> returner = new ArrayList<>();
+		for (T t : list)
+			returner.add(t);
+		return returner;
+	}
+
+	public List<Monster> getFilteredMonsterHolderList(String minSize, String maxSize, Integer minAC, Integer maxAC,
+			Integer minHP, Integer maxHP, Double minCR, Double maxCR, String isLegendary) {
+		return monsterHolderListToMonsterList(MonsterHolderList).stream().filter((x) -> {
+			return ((minSize == null || sizeToInt(x.getSize()) >= sizeToInt(minSize))
+					&& (maxSize == null || sizeToInt(x.getSize()) <= sizeToInt(maxSize))
+					&& (minAC == null || x.getAc() >= minAC) && (maxAC == null || x.getAc() <= maxAC)
+					&& (minHP == null || x.getAverageHp() >= minHP) && (maxHP == null || x.getAverageHp() <= maxHP)
+					&& (minCR == null || x.getCr() >= minCR) && (maxCR == null || x.getCr() <= maxCR)
+					&& (isLegendary == null || isLegendary.equals("Either")
+							|| x.isLegendary() == Boolean.parseBoolean(isLegendary)));
+		}).collect(Collectors.toList());
+	}
+
+	public List<Monster> monsterHolderListToMonsterList(List<MonsterHolder> monsterHolderList) {
+		return monsterHolderList.stream().map(x -> x.getMonster()).collect(Collectors.toList());
+	}
+
+	public List<MonsterHolder> getMonsterHolderListSortedByCount(List<MonsterHolder> MonsterHolderList) {
+		return MonsterHolderList.stream().sorted(new Comparator<MonsterHolder>() {
+			@Override
+			public int compare(MonsterHolder o1, MonsterHolder o2) {
+				return new Integer(o1.getCount()).compareTo(o2.getCount());
+			}
+		}).collect(Collectors.toList());
+	}
+
 }

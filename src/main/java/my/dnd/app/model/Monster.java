@@ -1,5 +1,7 @@
 package my.dnd.app.model;
 
+import java.util.List;
+
 public class Monster {
 	
 	private String name;
@@ -15,6 +17,7 @@ public class Monster {
 	private int bonusHp;
 	private double cr;
 	private boolean isLegendary;
+	private List<InnerText> innerTextList;
 	
 	public String getName() {
 		return name;
@@ -93,6 +96,36 @@ public class Monster {
 	}
 	public void setLegendary(boolean isLegendary) {
 		this.isLegendary = isLegendary;
+	}
+	public List<InnerText> getInnerTextList() {
+		return innerTextList;
+	}
+	public void setInnerTextList(List<InnerText> innerTextList) {
+		this.innerTextList = innerTextList;
+	}
+	
+	public class InnerText {
+		private String name;
+		private String text;
+		public InnerText(String name, String text) {
+			this.name = name;
+			this.text = text;
+		}
+		public InnerText() {
+		}
+		
+		public String getName() {
+			return name;
+		}
+		public String getText() {
+			return text;
+		}
+		public void setName(String name) {
+			this.name = name;
+		}
+		public void setText(String text) {
+			this.text = text;
+		}
 	}
 	
 }

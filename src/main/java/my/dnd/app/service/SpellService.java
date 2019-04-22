@@ -19,60 +19,72 @@ import org.xml.sax.SAXException;
 import my.dnd.app.model.Spell;
 
 public class SpellService {
-	
+
 	private static List<Spell> spellList;
 	private static List<String> schoolList;
 	private static List<String> classList;
 	private static SpellService instance;
-	
+
 	public static SpellService getInstance() {
-		if(instance == null) {
+		if (instance == null) {
 			readFileToList();
 			instance = new SpellService();
 		}
 		return instance;
 	}
-	private SpellService() {}
-	
+
+	private SpellService() {
+	}
+
 	public List<Spell> getSpellList() {
 		return spellList;
 	}
+
 	public List<String> getSchools() {
 		return schoolList;
 	}
+
 	public List<String> getClasses() {
 		return classList;
 	}
 	
+	public Spell findSpellByName(String spellName) {
+		for(Spell s : spellList) {
+			if(s.getName().equalsIgnoreCase(spellName))
+				return s;
+		}
+		return null;
+	}
+
 	private static void readFileToList() {
-		try {			
+		try {
 			InputStream is = (InputStream) EncounterGenerator.class.getResourceAsStream("/spells.xml");
-						
+
 			spellList = new ArrayList<>();
 			DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 			DocumentBuilder db = factory.newDocumentBuilder();
 			Document doc = db.parse(is);
 			doc.getDocumentElement().normalize();
 			NodeList list = doc.getElementsByTagName("spell");
-			
-			for(int i = 0; i < list.getLength(); i++) {
+
+			for (int i = 0; i < list.getLength(); i++) {
 				Node node = list.item(i);
-				if(node.getNodeType() == Node.ELEMENT_NODE) {
+				if (node.getNodeType() == Node.ELEMENT_NODE) {
 					Element element = (Element) node;
 					Spell m = new Spell();
 					m.setName(element.getElementsByTagName("name").item(0).getTextContent());
 					m.setLevel(Integer.parseInt(element.getElementsByTagName("level").item(0).getTextContent()));
-					m.setSchool(element.getElementsByTagName("school").item(0).getTextContent());
+					m.setSchool(getFullSchoolName(element.getElementsByTagName("school").item(0).getTextContent()));
 					m.setCastingTime(element.getElementsByTagName("time").item(0).getTextContent());
 					m.setRange(element.getElementsByTagName("range").item(0).getTextContent());
 					m.setDuration(element.getElementsByTagName("duration").item(0).getTextContent());
 					Scanner scan = new Scanner(element.getElementsByTagName("classes").item(0).getTextContent());
 					List<String> classes = new ArrayList<>();
-					while(scan.hasNext()) {
+					while (scan.hasNext()) {
 						String s = scan.next();
-						if(!(s.startsWith("(") || s.endsWith(")") || s.endsWith("),")) && !s.equals("Old")) {
-							if(s.endsWith(","))
-								s = s.substring(0, s.length()-1);
+						if (!(s.startsWith("(") || s.endsWith(")") || s.endsWith("),")) && !s.equals("Old")) {
+							if (s.endsWith(","))
+								s = s.substring(0, s.length() - 1);
 							classes.add(s);
 						}
 					}
@@ -87,14 +99,14 @@ public class SpellService {
 					spellList.add(m);
 				}
 				schoolList = new ArrayList<>();
-				for(Spell s : spellList) {
-					if(!schoolList.contains(s.getSchool()))
+				for (Spell s : spellList) {
+					if (!schoolList.contains(s.getSchool()))
 						schoolList.add(s.getSchool());
 				}
 				classList = new ArrayList<>();
-				for(Spell s : spellList) {
-					for(String string : s.getClasses()) {
-						if(!classList.contains(string))
+				for (Spell s : spellList) {
+					for (String string : s.getClasses()) {
+						if (!classList.contains(string))
 							classList.add(string);
 					}
 				}
@@ -107,28 +119,52 @@ public class SpellService {
 			e.printStackTrace();
 		}
 	}
+	
+	private static String getFullSchoolName(String school) {
+		switch (school) {
+		case "C":
+			return "Conjuration";
+		case "A":
+			return "Abjuration";
+		case "D":
+			return "Divination";
+		case "T":
+			return "Transmutation";
+		case "EN":
+			return "Enchantment";
+		case "N":
+			return "Necromancy";
+		case "EV":
+			return "Evocation";
+		case "I":
+			return "Illusion";
+		default:
+			return null;
+		}
+	}
+
 	public List<Spell> getFilteredSpellList(List<Integer> levels, List<String> schools, List<String> classes) {
 		List<Spell> list = new ArrayList<>();
-		for(Spell s : spellList) {
+		for (Spell s : spellList) {
 			boolean check1 = false;
 			boolean check2 = false;
 			boolean check3 = false;
-			if(levels != null && levels.contains(s.getLevel()))
+			if (levels != null && levels.contains(s.getLevel()))
 				check1 = true;
-			if(schools != null && schools.contains(s.getSchool()))
+			if (schools != null && schools.contains(s.getSchool()))
 				check2 = true;
-			if(classes != null) {
-				for(String string : s.getClasses()) {
-					if(classes.contains(string)) {
+			if (classes != null) {
+				for (String string : s.getClasses()) {
+					if (classes.contains(string)) {
 						check3 = true;
 						break;
 					}
 				}
 			}
-			if(check1 && check2 && check3)
+			if (check1 && check2 && check3)
 				list.add(s);
 		}
 		return list;
 	}
-	
+
 }

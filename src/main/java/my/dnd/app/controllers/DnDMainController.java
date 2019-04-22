@@ -4,8 +4,8 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 @Controller
-@RequestMapping("")
-public class MainController {//implements ErrorController 
+@RequestMapping("/dnd")
+public class DnDMainController {//implements ErrorController 
 	
 	@RequestMapping(value= {"/","","/home"})
 	public String home() {
